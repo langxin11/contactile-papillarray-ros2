@@ -8,24 +8,22 @@
 
 #include "papillarray_interfaces/msg/sensor_state.hpp"
 
-class CsvLogger {
+class CsvLogger
+{
 public:
   CsvLogger() = default;
   ~CsvLogger();
 
-  CsvLogger(const CsvLogger &) = delete;
-  CsvLogger &operator=(const CsvLogger &) = delete;
+  CsvLogger(const CsvLogger&) = delete;
+  CsvLogger& operator=(const CsvLogger&) = delete;
 
-  bool open(const std::filesystem::path &log_dir, int hub_id,
-            std::size_t max_pillars, bool include_pillar_detail,
-            std::string *error_message);
-  bool write(std::size_t sensor_id,
-             const papillarray_interfaces::msg::SensorState &message,
-             std::string *error_message);
+  bool open(const std::filesystem::path& log_dir, int hub_id, std::size_t max_pillars, bool include_pillar_detail,
+            std::string* error_message);
+  bool write(std::size_t sensor_id, const papillarray_interfaces::msg::SensorState& message, std::string* error_message);
   void close();
 
   bool isOpen() const;
-  const std::filesystem::path &filePath() const;
+  const std::filesystem::path& filePath() const;
 
 private:
   void writeHeader();
@@ -39,4 +37,4 @@ private:
   bool include_pillar_detail_ = false;
 };
 
-#endif // PAPILLARRAY_ROS2_V2_CSV_LOGGER_HPP_
+#endif  // PAPILLARRAY_ROS2_V2_CSV_LOGGER_HPP_

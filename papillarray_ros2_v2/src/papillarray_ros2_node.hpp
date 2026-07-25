@@ -38,13 +38,13 @@
 // 当前 SDK 头文件中已使用 #define BYTE unsigned char 绕过
 
 #ifndef PTSDKCONSTANTS_H
-#include <PTSDKConstants.h>   // 常量定义 (维度索引、滑动状态枚举等)
+#include <PTSDKConstants.h>  // 常量定义 (维度索引、滑动状态枚举等)
 #endif
 #ifndef PTSDKLISTENER_H
-#include <PTSDKListener.h>    // 串口监听器，管理连接与数据接收
+#include <PTSDKListener.h>  // 串口监听器，管理连接与数据接收
 #endif
 #ifndef PTSDKSENSOR_H
-#include <PTSDKSensor.h>      // 传感器对象，封装单个传感器的数据读取接口
+#include <PTSDKSensor.h>  // 传感器对象，封装单个传感器的数据读取接口
 #endif
 
 // ============================================================
@@ -55,62 +55,64 @@
 //   2. 运行 - 定时回调 updateData() 发布 SensorState 消息
 //   3. 析构 - 停止监听并断开串口连接
 // ============================================================
-class PapillArrayNode : public rclcpp::Node {
+class PapillArrayNode : public rclcpp::Node
+{
 public:
-    // 构造函数: 声明参数、创建传感器、连接串口、启动定时器
-    explicit PapillArrayNode(const rclcpp::NodeOptions & options);
+  // 构造函数: 声明参数、创建传感器、连接串口、启动定时器
+  explicit PapillArrayNode(const rclcpp::NodeOptions& options);
 
-    // 析构函数: 停止数据监听并断开与 COM 口的连接
-    ~PapillArrayNode() {
-        csv_logger_.close();
-        listener_.stopListeningAndDisconnect();
-    }
+  // 析构函数: 停止数据监听并断开与 COM 口的连接
+  ~PapillArrayNode()
+  {
+    csv_logger_.close();
+    listener_.stopListeningAndDisconnect();
+  }
 
-    // 定时采样回调: 从各传感器读取最新数据并发布到对应 Topic
-    void updateData();
+  // 定时采样回调: 从各传感器读取最新数据并发布到对应 Topic
+  void updateData();
 
 private:
-    // ======== 配置参数 ========
-    int hub_id_;           // 集线器 ID，用于命名话题和服务
-    int n_sensors_;        // 传感器数量 (1~4)
-    std::string port_;     // 串口设备路径，如 /dev/ttyACM0
-    int baud_rate_;        // 串口波特率，如 9600
-    int parity_;           // 校验位: 0=无, 1=奇, 2=偶
-    int byte_size_;        // 数据位宽，默认 8 位
-    bool is_flush_;        // 缓冲区溢出时是否清空硬件输入缓冲
-    int sampling_rate_;    // 采样频率 (Hz): 100/250/500/1000
-    std::string log_dir_;  // CSV 日志目录；空字符串表示关闭日志
-    bool csv_pillar_detail_;  // 是否在 CSV 中记录逐 pillar 位移与力
+  // ======== 配置参数 ========
+  int hub_id_;              // 集线器 ID，用于命名话题和服务
+  int n_sensors_;           // 传感器数量 (1~4)
+  std::string port_;        // 串口设备路径，如 /dev/ttyACM0
+  int baud_rate_;           // 串口波特率，如 9600
+  int parity_;              // 校验位: 0=无, 1=奇, 2=偶
+  int byte_size_;           // 数据位宽，默认 8 位
+  bool is_flush_;           // 缓冲区溢出时是否清空硬件输入缓冲
+  int sampling_rate_;       // 采样频率 (Hz): 100/250/500/1000
+  std::string log_dir_;     // CSV 日志目录；空字符串表示关闭日志
+  bool csv_pillar_detail_;  // 是否在 CSV 中记录逐 pillar 位移与力
 
-    // ======== 传感器管理 ========
-    PTSDKListener listener_;                         // 串口监听器，管理底层数据流
-    std::vector<std::unique_ptr<PTSDKSensor> > sensors_;  // 传感器对象容器
-    CsvLogger csv_logger_;                           // 可控权限的时间序列 CSV 写入器
+  // ======== 传感器管理 ========
+  PTSDKListener listener_;                              // 串口监听器，管理底层数据流
+  std::vector<std::unique_ptr<PTSDKSensor> > sensors_;  // 传感器对象容器
+  CsvLogger csv_logger_;                                // 可控权限的时间序列 CSV 写入器
 
-    // ======== ROS 2 通信接口 ========
-    // 每个传感器对应一个 Publisher，发布到 /hub_{id}/sensor_{n} 话题
-    std::vector<rclcpp::Publisher<papillarray_interfaces::msg::SensorState>::SharedPtr> sensor_pubs_;
+  // ======== ROS 2 通信接口 ========
+  // 每个传感器对应一个 Publisher，发布到 /hub_{id}/sensor_{n} 话题
+  std::vector<rclcpp::Publisher<papillarray_interfaces::msg::SensorState>::SharedPtr> sensor_pubs_;
 
-    // 定时器: 按 sampling_rate 周期触发 updateData()
-    rclcpp::TimerBase::SharedPtr update_timer_;
+  // 定时器: 按 sampling_rate 周期触发 updateData()
+  rclcpp::TimerBase::SharedPtr update_timer_;
 
-    // ---- 服务端 ----
-    rclcpp::Service<papillarray_interfaces::srv::StartSlipDetection>::SharedPtr start_sd_srv_;
-    rclcpp::Service<papillarray_interfaces::srv::StopSlipDetection>::SharedPtr stop_sd_srv_;
-    rclcpp::Service<papillarray_interfaces::srv::BiasRequest>::SharedPtr send_bias_request_srv_;
+  // ---- 服务端 ----
+  rclcpp::Service<papillarray_interfaces::srv::StartSlipDetection>::SharedPtr start_sd_srv_;
+  rclcpp::Service<papillarray_interfaces::srv::StopSlipDetection>::SharedPtr stop_sd_srv_;
+  rclcpp::Service<papillarray_interfaces::srv::BiasRequest>::SharedPtr send_bias_request_srv_;
 
-    // ---- 服务回调函数 ----
-    bool startSlipDetectionSrvCallback(
-        [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::StartSlipDetection::Request> request,
-        std::shared_ptr<papillarray_interfaces::srv::StartSlipDetection::Response> response);
+  // ---- 服务回调函数 ----
+  bool startSlipDetectionSrvCallback(
+      [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::StartSlipDetection::Request> request,
+      std::shared_ptr<papillarray_interfaces::srv::StartSlipDetection::Response> response);
 
-    bool stopSlipDetectionSrvCallback(
-        [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::StopSlipDetection::Request> request,
-        std::shared_ptr<papillarray_interfaces::srv::StopSlipDetection::Response> response);
+  bool stopSlipDetectionSrvCallback(
+      [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::StopSlipDetection::Request> request,
+      std::shared_ptr<papillarray_interfaces::srv::StopSlipDetection::Response> response);
 
-    bool sendBiasRequestSrvCallback(
-        [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Request> request,
-        std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Response> response);
+  bool sendBiasRequestSrvCallback(
+      [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Request> request,
+      std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Response> response);
 };
 
-#endif // PAPILLARRAY_ROS2_V2_NODE_H_
+#endif  // PAPILLARRAY_ROS2_V2_NODE_H_
