@@ -41,7 +41,8 @@ repos:
 
       - id: colcon-test
         name: colcon test
-        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/../.." && . /opt/ros/jazzy/setup.bash 2>/dev/null; . install/setup.bash 2>/dev/null || { echo "[pre-push] skip: workspace not built"; exit 0; }; colcon test --packages-select papillarray_serial_driver papillarray_ros2_v2 && colcon test-result --verbose'
+        entry: |-
+          bash -c 'ROOT="$(git rev-parse --show-toplevel)/../.."; . /opt/ros/jazzy/setup.bash 2>/dev/null; . "$ROOT/install/setup.bash" 2>/dev/null || { echo "[pre-push] skip: not built"; exit 0; }; cd "$ROOT" && colcon test --packages-select papillarray_serial_driver papillarray_ros2_v2 && colcon test-result --verbose'
         language: system
         pass_filenames: false
         stages: [pre-push]
