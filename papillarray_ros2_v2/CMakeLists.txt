@@ -157,7 +157,23 @@ install(DIRECTORY
 # ---------- 测试 ----------
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+
+  # 排除自动化的 clang-format（需手动调用以跳过第三方 lib/ 目录）
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_clang_format)
   ament_lint_auto_find_test_dependencies()
+
+  # 手动添加 clang-format，仅检查项目源码（排除 lib/ 下的 PTSDK 头文件）
+  find_package(ament_cmake_clang_format QUIET)
+  if(ament_cmake_clang_format_FOUND)
+    file(GLOB_RECURSE CLANG_FORMAT_SOURCES
+      src/*.cpp src/*.hpp
+      test/*.cpp test/*.hpp
+    )
+    ament_clang_format(
+      CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+      ${CLANG_FORMAT_SOURCES}
+    )
+  endif()
 
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_csv_logger
