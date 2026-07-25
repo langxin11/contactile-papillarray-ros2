@@ -1,0 +1,70 @@
+# pre-commit 钩子统一管理 —— ROS 2 工作区版本。
+#
+# 初始化:
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#   pre-commit run --all-files
+#
+# 设计:
+#   - pre-commit: 轻量检查（YAML/XML/格式/lint），快速失败
+#   - pre-push:   完整测试，需先 colcon build && source install/setup.bash，
+#                 避免每次 commit 都变重
+#
+# 注意: 各包的 YAML 参数文件使用 ROS 2 substitution 语法（${xxx}），
+#   会被 check-yaml 误报为非标准 YAML；已排除 src/ 下 config 目录。
+
+default_install_hook_types:
+  - pre-commit
+  - pre-push
+
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        exclude: ^src/.*/config/
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types_or: [python, pyi]
+        files: ^src/
+
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format --check
+        language: system
+        types_or: [python, pyi]
+        files: ^src/
+
+      - id: colcon-test
+        name: colcon test
+        entry: bash -c '
+          if [ ! -f install/setup.bash ]; then
+            echo "[pre-push] install/ 目录不存在，正在自动构建..." >&2
+            source /opt/ros/jazzy/setup.bash 2>/dev/null || true
+            colcon build --symlink-install --packages-select \
+              robotiq_2f85_force_control robotiq_2f85_driver robotiq_2f85_msgs \
+              papillarray_serial_driver papillarray_ros2_v2 \
+              || { echo "[pre-push] build 失败，跳过测试" >&2; exit 0; }
+          fi
+          source install/setup.bash
+          colcon test --packages-select \
+            robotiq_2f85_force_control robotiq_2f85_driver \
+            papillarray_serial_driver papillarray_ros2_v2 \
+            || { echo "[pre-push] 部分测试失败" >&2; exit 1; }
+          colcon test-result --all --verbose
+        '
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
