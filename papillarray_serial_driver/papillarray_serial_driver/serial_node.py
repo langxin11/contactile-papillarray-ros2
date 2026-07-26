@@ -171,6 +171,10 @@ class PapillArraySerialNode(Node):
         # 服务无法判断机械负载，调用者必须把服务调用本身视为无负载确认。
         self.get_logger().info("执行 Bias：请确认传感器无负载，并保持约 2 s")
         response.result = self._worker.send_command(BIAS_COMMAND)
+        if response.result:
+            self.get_logger().info("Bias 指令已发送成功")
+        else:
+            self.get_logger().error("Bias 指令发送失败")
         return response
 
     def _handle_start_slip(

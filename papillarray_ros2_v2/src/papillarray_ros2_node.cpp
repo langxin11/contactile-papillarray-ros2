@@ -340,8 +340,13 @@ bool PapillArrayNode::sendBiasRequestSrvCallback(
     [[maybe_unused]] const std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Request> req,
     std::shared_ptr<papillarray_interfaces::srv::BiasRequest::Response> resp)
 {
-  RCLCPP_INFO(this->get_logger(), "sendBiasRequest callback");
+  RCLCPP_INFO(this->get_logger(), "执行 Bias：请确认传感器无负载，并保持约 2 s");
   resp->result = listener_.sendBiasRequest();
+  if (resp->result) {
+    RCLCPP_INFO(this->get_logger(), "Bias 指令已发送成功");
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "Bias 指令发送失败");
+  }
   return resp->result;
 }
 
