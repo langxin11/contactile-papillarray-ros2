@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import rclpy
 from papillarray_interfaces.msg import SensorState
 from papillarray_interfaces.srv import (
@@ -10,6 +12,7 @@ from papillarray_interfaces.srv import (
     StartSlipDetection,
     StopSlipDetection,
 )
+from rclpy.impl.implementation_singleton import rclpy_implementation as _rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 
@@ -34,6 +37,17 @@ DEFAULT_CONTACT_THRESHOLD_N = 0.5
 DEFAULT_RECONNECT_INITIAL_DELAY_SEC = 1.0
 DEFAULT_RECONNECT_MAX_DELAY_SEC = 10.0
 MAX_SENSOR_COUNT = 4
+RCLError = _rclpy.RCLError
+
+
+def _configure_rclpy_warning_filters() -> None:
+    """过滤已由调用端超时保护覆盖的陈旧服务响应底层警告。"""
+    warnings.filterwarnings(
+        "ignore",
+        message=r"failed to send response \(timeout\): client will not receive response",
+        category=RuntimeWarning,
+        module=r"rclpy\.service",
+    )
 
 
 class PapillArraySerialNode(Node):
@@ -125,6 +139,9 @@ class PapillArraySerialNode(Node):
         super().destroy_node()
 
     def _publish_packet(self, packet: ParsedPacket) -> None:
+        """将串口数据包转换为消息；ROS 关闭后静默丢弃剩余帧。"""
+        if not self.context.ok():
+            return
         try:
             messages = packet_to_messages(
                 packet=packet,
@@ -139,7 +156,12 @@ class PapillArraySerialNode(Node):
             return
 
         for publisher, message in zip(self._publishers, messages, strict=True):
-            publisher.publish(message)
+            try:
+                publisher.publish(message)
+            except RCLError:
+                if not self.context.ok():
+                    return
+                raise
 
     def _handle_bias_request(
         self,
@@ -147,7 +169,7 @@ class PapillArraySerialNode(Node):
         response: BiasRequest.Response,
     ) -> BiasRequest.Response:
         # 服务无法判断机械负载，调用者必须把服务调用本身视为无负载确认。
-        self.get_logger().warning("发送 Bias 前必须确认传感器无负载，并保持约 2 s")
+        self.get_logger().info("执行 Bias：请确认传感器无负载，并保持约 2 s")
         response.result = self._worker.send_command(BIAS_COMMAND)
         return response
 
@@ -174,6 +196,7 @@ def main(args: list[str] | None = None) -> None:
     Args:
         args: 传递给 ``rclpy.init`` 的 ROS 参数。
     """
+    _configure_rclpy_warning_filters()
     rclpy.init(args=args)
     node: PapillArraySerialNode | None = None
     try:
