@@ -1,0 +1,10 @@
+papillarray_slip_bridge:
+  ros__parameters:
+    input_topics:
+      - /hub_0/sensor_0
+      - /hub_0/sensor_1
+    output_topics:
+      - /hub_0/sensor_0/slip_state
+      - /hub_0/sensor_1/slip_state
+    # 滑动检测本身由驱动的 StartSlipDetection 服务显式开启；本节点不启动它。
+    publish_rate_hz: 50.0
