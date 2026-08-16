@@ -11,6 +11,8 @@
 | `papillarray_interfaces` | `ament_cmake` | 定义 `SensorState`、`PillarState` 消息和三个控制服务 |
 | `papillarray_ros2_v2` | C++ | 使用 Contactile 原厂 PTSDK 静态库读取传感器 |
 | `papillarray_serial_driver` | Python | 直接解析 PTS v2.0 串口协议，不依赖原厂 SDK 运行库 |
+| `papillarray_contact_processing` | Python | 接触信号 bridge、原始 CSV 记录与离线噪声分析 |
+| `papillarray_slip_processing` | Python | 按需滑动检测状态提取 |
 
 两套驱动发布相同的消息并提供相同的服务，但不能同时占用同一个串口，也不应同时向同名
 Topic 发布数据。
@@ -53,6 +55,8 @@ rosdep install --from-paths src --ignore-src -r -y
 ```bash
 colcon build \
   --packages-select papillarray_interfaces papillarray_serial_driver \
+    papillarray_contact_processing \
+    papillarray_slip_processing \
   --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 source install/setup.bash
 ```
@@ -174,6 +178,29 @@ ros2 topic echo /hub_0/sensor_0
 ros2 topic hz /hub_0/sensor_0
 ```
 
+## 信号处理与噪声分析
+
+驱动始终保留原始 `SensorState` Topic。可选信号处理包能够在每条 500 Hz 原始消息到达时
+更新一阶低通，并将滤波后的合力与合力矩发布为标准 `WrenchStamped`：
+
+```bash
+ros2 launch papillarray_contact_processing contact_bridge.launch.py
+```
+
+无负载噪声测试应记录原始数据，而不是滤波结果：
+
+```bash
+ros2 launch papillarray_contact_processing record_noise.launch.py \
+  output_path:=/tmp/papillarray_no_load.csv
+
+ros2 run papillarray_contact_processing noise_analysis \
+  /tmp/papillarray_no_load.csv --sensor 0 --field gfz \
+  --cutoffs 5 10 20 40 60 100
+```
+
+完整参数、输出文件和单位约定见
+[`papillarray_contact_processing/README_zh.md`](papillarray_contact_processing/README_zh.md)。
+
 ## Service
 
 | 服务 | 类型 | 说明 |
@@ -228,7 +255,9 @@ ls -l /dev/ttyACM*
 构建后运行接口与自研驱动的离线测试：
 
 ```bash
-colcon test --packages-select papillarray_interfaces papillarray_serial_driver
+colcon test --packages-select \
+  papillarray_interfaces papillarray_serial_driver papillarray_contact_processing \
+  papillarray_slip_processing
 colcon test-result --verbose
 ```
 
