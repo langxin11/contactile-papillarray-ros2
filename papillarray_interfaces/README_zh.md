@@ -55,6 +55,18 @@ PapillArray 触觉传感器的 ROS 2 接口定义包，包含自定义消息 (`.
 | `is_ref_loaded` | `bool` | 参考载荷是否已加载 |
 | `is_contact` | `bool` | 传感器是否与物体接触（任一 pillar 接触即为 true） |
 
+### TactileState (`msg/TactileState.msg`)
+
+接触 signal bridge 输出的轻量状态，供力控与安全层订阅。它包含
+`data_valid`、经滞回去抖的 `is_contact`、接触 pillar 数、接触 pillar 编号，以及
+滤波后的合力/力矩和统一方向的 `normal_force_n`；不包含滑动检测字段。
+
+### SlipState (`msg/SlipState.msg`)
+
+按需滑动 bridge 输出的状态。只有 `detection_active` 和 `reference_loaded` 均为 true
+时，`data_valid` 才为 true；未启用滑动检测时，`is_slipping=false` 不表示未滑动。
+有效帧包含 `slipping_pillar_ids`、摩擦估计和目标抓取力。
+
 ## 自定义服务
 
 ### BiasRequest (`srv/BiasRequest.srv`)

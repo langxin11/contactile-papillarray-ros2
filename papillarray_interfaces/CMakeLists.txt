@@ -32,6 +32,8 @@ find_package(std_msgs REQUIRED)                    # 标准消息类型 (Header 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PillarState.msg"              # 单触点状态消息
   "msg/SensorState.msg"              # 传感器完整状态消息
+  "msg/TactileState.msg"             # 处理后的轻量触觉状态
+  "msg/SlipState.msg"                # 按需滑动检测状态
   "srv/BiasRequest.srv"              # 偏置校准请求服务
   "srv/StartSlipDetection.srv"       # 启动滑动检测服务
   "srv/StopSlipDetection.srv"        # 停止滑动检测服务
