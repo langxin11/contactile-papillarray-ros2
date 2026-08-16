@@ -1,0 +1,33 @@
+papillarray_contact_bridge:
+  ros__parameters:
+    input_topics:
+      - /hub_0/sensor_0
+      - /hub_0/sensor_1
+    # 为保留兼容性，继续发布标准 WrenchStamped；新控制/安全层应改订阅
+    # state_topics 中的 TactileState。
+    wrench_topics:
+      - /hub_0/sensor_0/filtered_wrench
+      - /hub_0/sensor_1/filtered_wrench
+    state_topics:
+      - /hub_0/sensor_0/processed_state
+      - /hub_0/sensor_1/processed_state
+    # 统一各传感器的正法向方向；安装反向时将对应元素设为 -1.0。
+    normal_signs: [1.0, 1.0]
+    # 两次无负载试验显示 10 Hz 可稳定降低约 53%~57% 的 gfz 标准差。
+    cutoff_hz: 10.0
+    # 时间戳回退或数据中断超过该值时重新播种，避免沿用重连前状态。
+    reset_gap_s: 0.1
+    # 滤波结果发布频率 (Hz)。滤波仍在原始 500 Hz 样本上更新，此处仅限制
+    # 下游发布节拍：控制节点只需 30~50 Hz，降采样可减少带宽并缓解
+    # best-effort 高频消息在下游订阅端丢包导致的数据超时。
+    publish_rate_hz: 50.0
+    # 输入中断超过该时间后，bridge 主动发布 data_valid=false，驱动下游安全停止。
+    input_timeout_s: 0.2
+    # 接触由滤波法向力、接触 pillar 数、滞回和连续样本共同确定。
+    contact_on_threshold_n: 0.5
+    contact_off_threshold_n: 0.3
+    contact_on_samples: 3
+    contact_off_samples: 3
+    min_contact_pillars: 1
+    pillar_contact_threshold_n: 0.5
+    min_pillar_count: 1
