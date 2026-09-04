@@ -24,17 +24,20 @@ def test_inactive_detection_marks_slip_result_invalid() -> None:
     assert features.friction_est == -1.0
 
 
-def test_missing_reference_marks_slip_result_invalid() -> None:
-    """检测器已启动但参考载荷未就绪时，滑动结论仍无效。"""
+def test_missing_reference_preserves_raw_slip_result_when_detection_is_active() -> None:
+    """参考载荷未就绪时仍应保留已启用检测器的原始滑移结果。"""
     features = extract_slip_features(True, False, [_Pillar(2, 3)], 0.8, 4.0)
 
     assert features.detection_active
-    assert not features.data_valid
-    assert features.slipping_pillar_ids == ()
+    assert not features.reference_loaded
+    assert features.data_valid
+    assert features.slipping_pillar_ids == (2,)
+    assert features.friction_est == 0.8
+    assert features.target_grip_force == 4.0
 
 
-def test_loaded_reference_reports_slipped_pillar_ids() -> None:
-    """检测器和参考载荷就绪后，应发布发生滑动的 pillar 编号。"""
+def test_active_detection_reports_slipped_pillar_ids() -> None:
+    """检测器启用后，应发布发生滑动的 pillar 编号。"""
     features = extract_slip_features(
         True,
         True,

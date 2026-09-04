@@ -63,9 +63,9 @@ PapillArray 触觉传感器的 ROS 2 接口定义包，包含自定义消息 (`.
 
 ### SlipState (`msg/SlipState.msg`)
 
-按需滑动 bridge 输出的状态。只有 `detection_active` 和 `reference_loaded` 均为 true
-时，`data_valid` 才为 true；未启用滑动检测时，`is_slipping=false` 不表示未滑动。
-有效帧包含 `slipping_pillar_ids`、摩擦估计和目标抓取力。
+按需滑动 bridge 输出的状态。只要 `detection_active=true`，`data_valid` 即为 true，
+并保留原始的 `slipping_pillar_ids`、摩擦估计和目标抓取力。`reference_loaded`
+仅作为原厂诊断状态；未启用滑动检测时，`is_slipping=false` 不表示未滑动。
 
 ## 自定义服务
 

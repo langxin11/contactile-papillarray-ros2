@@ -1,4 +1,4 @@
-"""从原始 PapillArray 帧提取仅在启用后才有意义的滑动状态。"""
+"""从原始 PapillArray 帧提取检测器启用后的滑动状态。"""
 
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ class SlipFeatures:
     Attributes:
         detection_active: 原始滑动检测器是否已启动。
         reference_loaded: 参考载荷是否已加载。
-        data_valid: 当前滑动结论是否有语义意义。
+        data_valid: 当前滑动检测器是否已启动。
         slipping_pillar_ids: 报告 SLIPPED 的 pillar 编号。
-        friction_est: 原厂摩擦估计；无效时为 -1。
-        target_grip_force: 原厂目标抓取力；无效时为 -1。
+        friction_est: 原厂摩擦估计；检测器未启动时为 -1。
+        target_grip_force: 原厂目标抓取力；检测器未启动时为 -1。
     """
 
     detection_active: bool
@@ -59,12 +59,12 @@ def extract_slip_features(
         target_grip_force: 原厂目标抓取力估计。
 
     Returns:
-        SlipFeatures: 仅在检测激活且参考已加载时 ``data_valid`` 为 true。
+        SlipFeatures: 检测器激活时 ``data_valid`` 为 true；``reference_loaded``
+        仅作为原厂诊断状态保留，不阻断原始滑动结果。
     """
-    data_valid = bool(detection_active and reference_loaded)
-    if not data_valid:
+    if not detection_active:
         return SlipFeatures(
-            bool(detection_active),
+            False,
             bool(reference_loaded),
             False,
             (),
@@ -76,7 +76,7 @@ def extract_slip_features(
     )
     return SlipFeatures(
         True,
-        True,
+        bool(reference_loaded),
         True,
         slipping_pillar_ids,
         float(friction_est),
