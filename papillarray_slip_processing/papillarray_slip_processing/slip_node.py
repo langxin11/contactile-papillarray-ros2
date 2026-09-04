@@ -102,7 +102,9 @@ def main(args: list[str] | None = None) -> None:
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        # launch 的 SIGINT 处理可能已关闭全局 context，避免重复 shutdown。
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -254,7 +254,9 @@ def main(args: list[str] | None = None) -> None:
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        # Ctrl-C 时 rclpy 的信号处理器已先关闭 context，需防二次关闭。
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
