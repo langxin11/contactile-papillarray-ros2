@@ -100,7 +100,8 @@ source ~/ros2_contactile/install/setup.bash
 
 ### 自研 Python 串口驱动
 
-默认使用 `/dev/ttyACM0`、115200 baud、2 个传感器和 500 Hz 采样率：
+默认使用 udev 别名 `/dev/papillarray`（见工作区 `udev/` 目录）、115200 baud、
+2 个传感器和 500 Hz 采样率：
 
 ```bash
 ros2 launch papillarray_serial_driver papillarray_serial.launch.py

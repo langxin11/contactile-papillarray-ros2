@@ -9,7 +9,8 @@
 ros2 launch papillarray_serial_driver papillarray_serial.launch.py
 ```
 
-常用参数：
+默认串口为 udev 别名 `/dev/papillarray`（规则文件见工作区 `udev/` 目录，别名
+缺失时启动日志会提示安装）。未配置别名时可显式指定内核编号名：
 
 ```bash
 ros2 launch papillarray_serial_driver papillarray_serial.launch.py \
