@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import errno
+import glob
+import os
 import queue
+import re
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -10,7 +14,7 @@ from typing import Any, Protocol
 
 import serial
 
-from .protocol import PTSProtocolReader, ParsedPacket
+from .protocol import ParsedPacket, PTSProtocolReader
 
 BIAS_COMMAND = b"z\n"
 START_SLIP_COMMAND = b"S\n"
@@ -103,6 +107,82 @@ def _default_serial_factory(**kwargs: Any) -> SerialPort:
         已打开的串口对象。
     """
     return serial.Serial(**kwargs)
+
+
+_OPEN_FAILURE_HINTS = {
+    errno.EACCES: "无权访问, 请确认当前用户在 dialout 组",
+    errno.EBUSY: "端口被其他进程占用, 可用 lsof 查看占用进程",
+}
+
+_KERNEL_TTY_PATTERN = re.compile(r"/dev/tty(ACM|USB|S)\d+$")
+
+
+def _format_available_ports() -> str:
+    """汇总系统当前可用的串口及其 udev 别名。
+
+    扫描 /dev/ttyACM* 与 /dev/ttyUSB*, 再遍历 /dev 顶层符号链接找出指向这些
+    设备的别名 (如 /dev/papillarray), 让"端口不存在"的报错自带设备发现能力。
+
+    Returns:
+        形如 "/dev/ttyACM0 (别名 /dev/papillarray)" 的逗号分隔列表; 无设备时
+        为 "无"。
+    """
+    devices = sorted(set(glob.glob("/dev/ttyACM*")) | set(glob.glob("/dev/ttyUSB*")))
+    if not devices:
+        return "无"
+    real_paths = {os.path.realpath(device): device for device in devices}
+    aliases: dict[str, list[str]] = {}
+    try:
+        entries = list(os.scandir("/dev"))
+    except OSError:
+        entries = []
+    for entry in entries:
+        try:
+            if not entry.is_symlink():
+                continue
+            target = os.path.realpath(entry.path)
+        except OSError:
+            continue
+        if target in real_paths and target != entry.path:
+            aliases.setdefault(target, []).append(f"/dev/{entry.name}")
+    parts = []
+    for device in devices:
+        names = sorted(aliases.get(os.path.realpath(device), []))
+        suffix = f" (别名 {'、'.join(names)})" if names else ""
+        parts.append(device + suffix)
+    return ", ".join(parts)
+
+
+def _describe_open_failure(port: str, exc: Exception) -> str:
+    """把串口打开失败翻译成带排查建议的错误消息。
+
+    按 errno 与端口路径形态区分 "ttyACM 编号写错"、"udev 别名未安装" 与
+    "by-id 设备未连接" 等情形; 打开成功后的读写中断不经过此分类, 仍按原文上报。
+
+    Args:
+        port: 打开失败的串口路径。
+        exc: ``serial_factory`` 抛出的异常。
+
+    Returns:
+        分类后的错误消息。
+    """
+    code = getattr(exc, "errno", None)
+    if code == errno.ENOENT:
+        available = _format_available_ports()
+        if port.startswith("/dev/serial/"):
+            return f"串口设备 {port} 不存在: 设备未连接; 系统当前可用: {available}"
+        if _KERNEL_TTY_PATTERN.match(port):
+            return (
+                f"串口设备 {port} 不存在, 系统当前可用: {available}; "
+                "请确认 com_port 参数"
+            )
+        return (
+            f"串口别名 {port} 不存在: 设备未连接, 或 udev 规则未安装"
+            f" (规则文件见工作区 udev/ 目录); 系统当前可用: {available}"
+        )
+    if code in _OPEN_FAILURE_HINTS:
+        return f"串口 {port} 打开失败: {_OPEN_FAILURE_HINTS[code]}"
+    return f"串口连接中断: {exc}"
 
 
 class SerialWorker:
@@ -235,7 +315,11 @@ class SerialWorker:
                         received_valid_packet = True
             except (OSError, TimeoutError, serial.SerialException) as exc:
                 if not self._stop_event.is_set():
-                    self._on_error(f"串口连接中断: {exc}")
+                    if serial_port is None:
+                        # 打开阶段失败按 errno 分类提示, 区分参数写错与线缆脱落等情形。
+                        self._on_error(_describe_open_failure(self._config.port, exc))
+                    else:
+                        self._on_error(f"串口连接中断: {exc}")
             finally:
                 self._connected_event.clear()
                 self._fail_pending_commands()
