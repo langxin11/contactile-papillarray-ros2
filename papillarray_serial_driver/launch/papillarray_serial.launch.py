@@ -17,7 +17,9 @@ def generate_launch_description() -> LaunchDescription:
             "n_sensors", default_value="2", description="预期传感器数量"
         ),
         DeclareLaunchArgument(
-            "com_port", default_value="/dev/ttyACM0", description="串口设备路径"
+            "com_port",
+            default_value="/dev/papillarray",
+            description="串口设备路径, 默认 udev 别名 (见工作区 udev/ 目录)",
         ),
         DeclareLaunchArgument(
             "baud_rate", default_value="115200", description="串口波特率"

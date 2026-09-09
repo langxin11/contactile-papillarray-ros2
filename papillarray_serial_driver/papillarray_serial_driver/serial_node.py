@@ -28,7 +28,9 @@ from .serial_worker import (
 
 DEFAULT_HUB_ID = 0
 DEFAULT_SENSOR_COUNT = 2
-DEFAULT_PORT = "/dev/ttyACM0"
+# 默认走 udev 别名而非 ttyACM 编号, 避免插拔顺序变化导致连错设备;
+# 别名缺失时启动日志会提示安装工作区 udev/ 目录下的规则。
+DEFAULT_PORT = "/dev/papillarray"
 DEFAULT_BAUD_RATE = 115200
 DEFAULT_SAMPLING_RATE_HZ = 500
 DEFAULT_SERIAL_TIMEOUT_SEC = 1.0
