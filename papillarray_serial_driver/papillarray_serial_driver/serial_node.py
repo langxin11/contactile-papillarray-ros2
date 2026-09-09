@@ -182,6 +182,8 @@ class PapillArraySerialNode(Node):
         _request: StartSlipDetection.Request,
         response: StartSlipDetection.Response,
     ) -> StartSlipDetection.Response:
+        # 日志文案与原厂 PTSDK 驱动保持一致，保证两套驱动终端输出可对照。
+        self.get_logger().info("startSlipDetection callback")
         response.result = self._worker.send_command(START_SLIP_COMMAND)
         return response
 
@@ -190,6 +192,7 @@ class PapillArraySerialNode(Node):
         _request: StopSlipDetection.Request,
         response: StopSlipDetection.Response,
     ) -> StopSlipDetection.Response:
+        self.get_logger().info("stopSlipDetection callback")
         response.result = self._worker.send_command(STOP_SLIP_COMMAND)
         return response
 

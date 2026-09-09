@@ -10,7 +10,11 @@ from papillarray_serial_driver.serial_node import (
     PapillArraySerialNode,
     _configure_rclpy_warning_filters,
 )
-from papillarray_serial_driver.serial_worker import BIAS_COMMAND
+from papillarray_serial_driver.serial_worker import (
+    BIAS_COMMAND,
+    START_SLIP_COMMAND,
+    STOP_SLIP_COMMAND,
+)
 
 
 class _StoppedContext:
@@ -58,7 +62,7 @@ def test_warning_filter_only_suppresses_stale_service_response() -> None:
             lineno=78,
             module="rclpy.service",
         )
-        warnings.warn("仍需显示的运行时警告", RuntimeWarning)
+        warnings.warn("仍需显示的运行时警告", RuntimeWarning, stacklevel=2)
 
     assert [str(item.message) for item in caught] == ["仍需显示的运行时警告"]
 
@@ -86,3 +90,47 @@ def test_bias_request_logs_information_and_sends_command() -> None:
         "执行 Bias：请确认传感器无负载，并保持约 2 s",
         "Bias 指令已发送成功",
     ]
+
+
+def test_start_slip_detection_logs_callback_and_sends_command() -> None:
+    """启动滑移检测服务应输出与原厂驱动一致的回调日志并发送命令。"""
+    logger = _FakeLogger()
+    worker = _FakeWorker()
+    fake_node = SimpleNamespace(
+        _worker=worker,
+        get_logger=lambda: logger,
+    )
+    response = SimpleNamespace(result=False)
+
+    returned = PapillArraySerialNode._handle_start_slip(
+        fake_node,
+        SimpleNamespace(),
+        response,
+    )
+
+    assert returned is response
+    assert response.result is True
+    assert worker.commands == [START_SLIP_COMMAND]
+    assert logger.info_messages == ["startSlipDetection callback"]
+
+
+def test_stop_slip_detection_logs_callback_and_sends_command() -> None:
+    """停止滑移检测服务应输出与原厂驱动一致的回调日志并发送命令。"""
+    logger = _FakeLogger()
+    worker = _FakeWorker()
+    fake_node = SimpleNamespace(
+        _worker=worker,
+        get_logger=lambda: logger,
+    )
+    response = SimpleNamespace(result=False)
+
+    returned = PapillArraySerialNode._handle_stop_slip(
+        fake_node,
+        SimpleNamespace(),
+        response,
+    )
+
+    assert returned is response
+    assert response.result is True
+    assert worker.commands == [STOP_SLIP_COMMAND]
+    assert logger.info_messages == ["stopSlipDetection callback"]
