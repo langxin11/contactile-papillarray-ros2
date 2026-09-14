@@ -1,6 +1,9 @@
 # Python 运行与测试缓存
 __pycache__/
 *.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
 
 # clangd 编译数据库（由 scripts/build_ros2.sh 生成软链接）
 compile_commands.json
