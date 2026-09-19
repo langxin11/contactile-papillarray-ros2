@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import time
 import warnings
 
 import rclpy
@@ -38,6 +39,12 @@ DEFAULT_MAX_PACKET_BYTES = 8192
 DEFAULT_CONTACT_THRESHOLD_N = 0.5
 DEFAULT_RECONNECT_INITIAL_DELAY_SEC = 1.0
 DEFAULT_RECONNECT_MAX_DELAY_SEC = 10.0
+DEFAULT_AUTO_BIAS = True
+DEFAULT_AUTO_BIAS_DELAY_SEC = 1.0
+# 相邻数据包间隔超过该值即视为数据流中断，推迟自动 Bias。
+AUTO_BIAS_MAX_STREAM_GAP_SEC = 0.5
+# 自动 Bias 检查定时器周期。
+AUTO_BIAS_TICK_PERIOD_SEC = 0.2
 MAX_SENSOR_COUNT = 4
 RCLError = _rclpy.RCLError
 
@@ -98,6 +105,23 @@ class PapillArraySerialNode(Node):
                     "reconnect_max_delay_sec", DEFAULT_RECONNECT_MAX_DELAY_SEC
                 ).value
             ),
+        )
+
+        # 自动 Bias：数据流稳定后发送一次 BIAS_COMMAND，前提是启动时传感器无负载。
+        self._auto_bias_pending = bool(
+            self.declare_parameter("auto_bias", DEFAULT_AUTO_BIAS).value
+        )
+        self._auto_bias_delay_sec = float(
+            self.declare_parameter(
+                "auto_bias_delay_sec", DEFAULT_AUTO_BIAS_DELAY_SEC
+            ).value
+        )
+        if self._auto_bias_delay_sec < 0:
+            raise ValueError("auto_bias_delay_sec 不能小于 0")
+        self._auto_bias_timer = (
+            self.create_timer(AUTO_BIAS_TICK_PERIOD_SEC, self._auto_bias_tick)
+            if self._auto_bias_pending
+            else None
         )
 
         self._publishers = [
@@ -178,6 +202,39 @@ class PapillArraySerialNode(Node):
         else:
             self.get_logger().error("Bias 指令发送失败")
         return response
+
+    def _auto_bias_tick(self) -> None:
+        """数据流稳定后自动执行一次 Bias。
+
+        稳定判定：自首个有效数据包起经过 ``auto_bias_delay_sec``，且最近
+        ``AUTO_BIAS_MAX_STREAM_GAP_SEC`` 内仍有新包到达。只发送一次，
+        失败不重试，可通过 ``send_bias_request`` 服务手动补偿。
+        """
+        if not self._auto_bias_pending:
+            return
+        first_s = self._worker.first_packet_monotonic
+        last_s = self._worker.last_packet_monotonic
+        now_s = time.monotonic()
+        if (
+            first_s is None
+            or last_s is None
+            or now_s - first_s < self._auto_bias_delay_sec
+            or now_s - last_s > AUTO_BIAS_MAX_STREAM_GAP_SEC
+        ):
+            return
+        self._auto_bias_pending = False
+        if self._auto_bias_timer is not None:
+            self._auto_bias_timer.cancel()
+            self._auto_bias_timer = None
+        if self._worker.send_command(BIAS_COMMAND):
+            self.get_logger().info(
+                f"数据流稳定 {self._auto_bias_delay_sec:g}s 后已自动执行 Bias；"
+                "前提是启动时传感器无负载，否则请重新调用 send_bias_request。"
+            )
+        else:
+            self.get_logger().error(
+                "自动 Bias 发送失败（串口未就绪），请稍后手动调用 send_bias_request。"
+            )
 
     def _handle_start_slip(
         self,

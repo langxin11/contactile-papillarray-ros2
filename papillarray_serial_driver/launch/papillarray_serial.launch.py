@@ -50,6 +50,11 @@ def generate_launch_description() -> LaunchDescription:
             default_value="10.0",
             description="最大重连间隔，单位 s",
         ),
+        DeclareLaunchArgument(
+            "auto_bias",
+            default_value="true",
+            description="数据流稳定后自动执行一次 Bias（须确保启动时传感器无负载）",
+        ),
     ]
     node = Node(
         package="papillarray_serial_driver",
@@ -72,6 +77,7 @@ def generate_launch_description() -> LaunchDescription:
                 "reconnect_max_delay_sec": LaunchConfiguration(
                     "reconnect_max_delay_sec"
                 ),
+                "auto_bias": LaunchConfiguration("auto_bias"),
             }
         ],
     )

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""PapillArray 串口 ROS 2 节点的日志与关闭行为测试。"""
+"""PapillArray 串口 ROS 2 节点的日志、自动 Bias 与关闭行为测试。"""
 
 from __future__ import annotations
 
+import time
 import warnings
 from types import SimpleNamespace
 
@@ -65,6 +66,98 @@ def test_warning_filter_only_suppresses_stale_service_response() -> None:
         warnings.warn("仍需显示的运行时警告", RuntimeWarning, stacklevel=2)
 
     assert [str(item.message) for item in caught] == ["仍需显示的运行时警告"]
+
+
+class _FakeAutoBiasWorker:
+    """按给定时间戳回放数据流稳定性的假 worker。"""
+
+    def __init__(self, first_s: float | None, last_s: float | None) -> None:
+        self._first_s = first_s
+        self._last_s = last_s
+        self.commands: list[bytes] = []
+
+    @property
+    def first_packet_monotonic(self) -> float | None:
+        return self._first_s
+
+    @property
+    def last_packet_monotonic(self) -> float | None:
+        return self._last_s
+
+    def send_command(self, command: bytes) -> bool:
+        self.commands.append(command)
+        return True
+
+
+def _make_auto_bias_node(
+    worker: _FakeAutoBiasWorker,
+    *,
+    delay: float = 1.0,
+    pending: bool = True,
+    timer: object | None = None,
+) -> SimpleNamespace:
+    """构造仅含自动 Bias 所需属性的假节点。"""
+    logger = _FakeLogger()
+    fake_node = SimpleNamespace(
+        _worker=worker,
+        _auto_bias_pending=pending,
+        _auto_bias_delay_sec=delay,
+        _auto_bias_timer=timer,
+        get_logger=lambda: logger,
+    )
+    return fake_node
+
+
+def test_auto_bias_sends_once_when_stream_is_stable() -> None:
+    """数据流稳定达到延迟要求后应发送一次 Bias 并停止定时器。"""
+    now_s = time.monotonic()
+    worker = _FakeAutoBiasWorker(first_s=now_s - 2.0, last_s=now_s - 0.01)
+    cancelled: list[bool] = []
+
+    fake_node = _make_auto_bias_node(
+        worker,
+        timer=SimpleNamespace(cancel=lambda: cancelled.append(True)),
+    )
+    PapillArraySerialNode._auto_bias_tick(fake_node)
+
+    assert worker.commands == [BIAS_COMMAND]
+    assert fake_node._auto_bias_pending is False
+    assert cancelled == [True]
+
+
+def test_auto_bias_waits_until_stream_settles() -> None:
+    """首包时间未达到稳定延迟前不应发送 Bias。"""
+    now_s = time.monotonic()
+    worker = _FakeAutoBiasWorker(first_s=now_s - 0.2, last_s=now_s - 0.01)
+
+    fake_node = _make_auto_bias_node(worker)
+    PapillArraySerialNode._auto_bias_tick(fake_node)
+
+    assert worker.commands == []
+    assert fake_node._auto_bias_pending is True
+
+
+def test_auto_bias_skips_when_stream_is_interrupted() -> None:
+    """最近数据包间隔超过上限时应视为断流并推迟 Bias。"""
+    now_s = time.monotonic()
+    worker = _FakeAutoBiasWorker(first_s=now_s - 5.0, last_s=now_s - 2.0)
+
+    fake_node = _make_auto_bias_node(worker)
+    PapillArraySerialNode._auto_bias_tick(fake_node)
+
+    assert worker.commands == []
+    assert fake_node._auto_bias_pending is True
+
+
+def test_auto_bias_skips_before_first_packet() -> None:
+    """尚未收到任何数据包时不应发送 Bias。"""
+    worker = _FakeAutoBiasWorker(first_s=None, last_s=None)
+
+    fake_node = _make_auto_bias_node(worker)
+    PapillArraySerialNode._auto_bias_tick(fake_node)
+
+    assert worker.commands == []
+    assert fake_node._auto_bias_pending is True
 
 
 def test_bias_request_logs_information_and_sends_command() -> None:

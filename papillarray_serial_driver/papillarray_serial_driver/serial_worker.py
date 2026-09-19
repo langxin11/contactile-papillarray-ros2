@@ -8,6 +8,7 @@ import os
 import queue
 import re
 import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -217,6 +218,19 @@ class SerialWorker:
         self._stop_event = threading.Event()
         self._connected_event = threading.Event()
         self._thread: threading.Thread | None = None
+        # 包时间戳仅供调用方判断数据流是否稳定；I/O 线程单写，float 赋值原子。
+        self._first_packet_monotonic: float | None = None
+        self._last_packet_monotonic: float | None = None
+
+    @property
+    def first_packet_monotonic(self) -> float | None:
+        """返回首个有效数据包的 ``time.monotonic()`` 时间戳，未收到数据时为 ``None``。"""
+        return self._first_packet_monotonic
+
+    @property
+    def last_packet_monotonic(self) -> float | None:
+        """返回最近一个有效数据包的 ``time.monotonic()`` 时间戳，未收到数据时为 ``None``。"""
+        return self._last_packet_monotonic
 
     @property
     def is_connected(self) -> bool:
@@ -306,6 +320,10 @@ class SerialWorker:
                         self._on_warning(f"已丢弃无法解析的数据包: {exc}")
                         continue
                     try:
+                        packet_monotonic_s = time.monotonic()
+                        if self._first_packet_monotonic is None:
+                            self._first_packet_monotonic = packet_monotonic_s
+                        self._last_packet_monotonic = packet_monotonic_s
                         self._on_packet(packet)
                     except Exception as exc:  # noqa: BLE001
                         # ROS 发布回调异常不应终止串口线程，否则设备仍连接却永久停止采集。
