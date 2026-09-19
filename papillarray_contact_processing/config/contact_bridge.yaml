@@ -17,10 +17,9 @@ papillarray_contact_bridge:
     cutoff_hz: 10.0
     # 时间戳回退或数据中断超过该值时重新播种，避免沿用重连前状态。
     reset_gap_s: 0.1
-    # 滤波结果发布频率 (Hz)。滤波仍在原始 500 Hz 样本上更新，此处仅限制
-    # 下游发布节拍：控制节点只需 30~50 Hz，降采样可减少带宽并缓解
-    # best-effort 高频消息在下游订阅端丢包导致的数据超时。
-    publish_rate_hz: 50.0
+    # 滤波结果发布频率 (Hz)。滤波仍在原始 1000 Hz 样本上更新，此处仅限制
+    # 下游发布节拍；与传感器采样率统一为 1000 Hz。
+    publish_rate_hz: 1000.0
     # 输入中断超过该时间后，bridge 主动发布 data_valid=false，驱动下游安全停止。
     input_timeout_s: 0.2
     # 接触由滤波法向力、接触 pillar 数、滞回和连续样本共同确定。

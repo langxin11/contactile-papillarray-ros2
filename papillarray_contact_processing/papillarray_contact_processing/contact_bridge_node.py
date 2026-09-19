@@ -84,7 +84,7 @@ class PapillArrayContactBridgeNode(Node):
             min_pillar_count=int(self.declare_parameter("min_pillar_count", 1).value),
         )
         self._publish_interval_s = 1.0 / float(
-            self.declare_parameter("publish_rate_hz", 50.0).value
+            self.declare_parameter("publish_rate_hz", 1000.0).value
         )
         self._input_timeout_s = float(
             self.declare_parameter("input_timeout_s", 0.2).value

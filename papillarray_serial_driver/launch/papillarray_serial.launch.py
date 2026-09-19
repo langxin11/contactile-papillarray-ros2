@@ -25,7 +25,7 @@ def generate_launch_description() -> LaunchDescription:
             "baud_rate", default_value="115200", description="串口波特率"
         ),
         DeclareLaunchArgument(
-            "sampling_rate", default_value="500", description="控制器采样频率，单位 Hz"
+            "sampling_rate", default_value="1000", description="控制器采样频率，单位 Hz"
         ),
         DeclareLaunchArgument(
             "serial_timeout_sec",
