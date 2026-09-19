@@ -75,7 +75,7 @@ private:
   // ======== 配置参数 ========
   int hub_id_;              // 集线器 ID，用于命名话题和服务
   int n_sensors_;           // 传感器数量 (1~4)
-  std::string port_;        // 串口设备路径，如 /dev/ttyACM0
+  std::string port_;        // 串口设备路径，默认 udev 别名 /dev/papillarray
   int baud_rate_;           // 串口波特率，如 9600
   int parity_;              // 校验位: 0=无, 1=奇, 2=偶
   int byte_size_;           // 数据位宽，默认 8 位

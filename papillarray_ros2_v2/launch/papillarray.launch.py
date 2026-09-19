@@ -39,7 +39,9 @@ def generate_launch_description():
 
     # ---- 串口设备路径 ----
     com_port_arg = DeclareLaunchArgument(
-        "com_port", default_value="/dev/ttyACM0", description="串口设备路径"
+        "com_port",
+        default_value="/dev/papillarray",
+        description="串口设备路径（udev 别名，见工作区 udev/99-gripper-devices.rules）",
     )
 
     # ---- 串口波特率 ----
