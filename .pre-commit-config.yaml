@@ -41,8 +41,8 @@ repos:
 
       - id: colcon-test
         name: colcon test
-        entry: |-
-          bash -c 'ROOT="$(git rev-parse --show-toplevel)/../.."; . /opt/ros/jazzy/setup.bash 2>/dev/null; . "$ROOT/install/setup.bash" 2>/dev/null || { echo "[pre-push] skip: not built"; exit 0; }; cd "$ROOT" && colcon test --packages-select papillarray_serial_driver papillarray_ros2_v2 papillarray_contact_processing papillarray_slip_processing && colcon test-result --test-result-base build/papillarray_ros2_v2 --verbose && colcon test-result --test-result-base build/papillarray_serial_driver --verbose && colcon test-result --test-result-base build/papillarray_contact_processing --verbose && colcon test-result --test-result-base build/papillarray_slip_processing --verbose'
+        # 工作区脚本统一运行 Python 功能测试；PTSDK 的 CMake 风格检查单独运行。
+        entry: bash -c 'ROOT="$(git rev-parse --show-toplevel)/../.."; exec "$ROOT/scripts/pre_push_test.sh"'
         language: system
         pass_filenames: false
         stages: [pre-push]
