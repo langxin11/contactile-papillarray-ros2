@@ -16,7 +16,11 @@ setup(
         (f"share/{PACKAGE_NAME}", ["package.xml", "README_zh.md"]),
         (f"share/{PACKAGE_NAME}/launch", glob("launch/*.launch.py")),
     ],
-    install_requires=["numpy", "pyserial", "setuptools"],
+    install_requires=[
+        "numpy",
+        "setuptools",
+        "papillarray-pts @ git+https://github.com/langxin11/papillarray-pts.git@v0.1.0",
+    ],
     tests_require=["pytest"],
     zip_safe=True,
     maintainer="langxin11",

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from builtin_interfaces.msg import Time
 from papillarray_interfaces.msg import PillarState, SensorState
-
-from .protocol import ParsedPacket
+from papillarray_pts.protocol import ParsedPacket
 
 UNKNOWN_SLIP_STATE = 0
 NO_ESTIMATE = -1.0

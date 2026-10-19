@@ -13,19 +13,19 @@ from papillarray_interfaces.srv import (
     StartSlipDetection,
     StopSlipDetection,
 )
-from rclpy.impl.implementation_singleton import rclpy_implementation as _rclpy
-from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
-
-from .message_mapping import packet_to_messages
-from .protocol import ParsedPacket
-from .serial_worker import (
+from papillarray_pts.protocol import ParsedPacket
+from papillarray_pts.serial_worker import (
     BIAS_COMMAND,
     START_SLIP_COMMAND,
     STOP_SLIP_COMMAND,
     SerialWorker,
     SerialWorkerConfig,
 )
+from rclpy.impl.implementation_singleton import rclpy_implementation as _rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+
+from .message_mapping import packet_to_messages
 
 DEFAULT_HUB_ID = 0
 DEFAULT_SENSOR_COUNT = 2

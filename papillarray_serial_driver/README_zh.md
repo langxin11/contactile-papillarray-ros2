@@ -1,6 +1,6 @@
 # PapillArray 自研串口 ROS 2 驱动
 
-本包通过 `pyserial` 和 PTS v2.0 协议直接读取 Controller，不依赖原厂 PTSDK 动态库。
+本包的 ROS 节点通过共享核心包 `papillarray-pts`（固定标签 git 依赖）读取 Controller，不依赖原厂 PTSDK 动态库；协议与串口工作器在该包中维护。
 它与 `papillarray_ros2_v2` 使用相同的消息、Topic 和 Service，因此两者应二选一运行。
 
 ## 启动

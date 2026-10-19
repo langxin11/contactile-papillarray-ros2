@@ -7,14 +7,15 @@ import time
 import warnings
 from types import SimpleNamespace
 
-from papillarray_serial_driver.serial_node import (
-    PapillArraySerialNode,
-    _configure_rclpy_warning_filters,
-)
-from papillarray_serial_driver.serial_worker import (
+from papillarray_pts.serial_worker import (
     BIAS_COMMAND,
     START_SLIP_COMMAND,
     STOP_SLIP_COMMAND,
+)
+
+from papillarray_serial_driver.serial_node import (
+    PapillArraySerialNode,
+    _configure_rclpy_warning_filters,
 )
 
 

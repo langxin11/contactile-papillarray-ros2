@@ -4,13 +4,13 @@
 import numpy as np
 import pytest
 from builtin_interfaces.msg import Time
+from papillarray_pts.protocol import ParsedPacket
 
 from papillarray_serial_driver.message_mapping import (
     NO_ESTIMATE,
     UNKNOWN_SLIP_STATE,
     packet_to_messages,
 )
-from papillarray_serial_driver.protocol import ParsedPacket
 
 
 def _packet(with_slip: bool = True) -> ParsedPacket:
