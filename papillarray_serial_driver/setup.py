@@ -19,7 +19,7 @@ setup(
     install_requires=[
         "numpy",
         "setuptools",
-        "papillarray-pts @ git+https://github.com/langxin11/papillarray-pts.git@v0.2.0",
+        "papillarray-pts @ git+https://github.com/langxin11/papillarray-pts.git@v0.3.0",
     ],
     tests_require=["pytest"],
     zip_safe=True,
